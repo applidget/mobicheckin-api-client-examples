@@ -10,7 +10,6 @@
 # Company: Applidget, editor of MobiCheckin (http://www.mobicheckin.com)
 # License: MIT
 
-require 'uri'
 require 'cgi'
 require 'net/https'
 require "rexml/document"
@@ -18,29 +17,28 @@ require "rexml/document"
 # QR Code image width in pixes
 QRCODE_WIDTH = 420
 
-# API Information
-API_ROOT = 'https://app.mobicheckin.com/api/v1/'
+# We need a valid API token
 API_TOKEN = ENV['MOBICHECKIN_API_TOKEN']
 unless API_TOKEN
   puts "Could not find MOBICHECKIN_API_TOKEN in your environment"
   abort
 end
 
-# Pick an event
+# We need an event id
 EVENT_ID = ENV['MOBICHECKIN_EVENT_ID']
 unless EVENT_ID
   puts "Could not find MOBICHECKIN_EVENT_ID in your environment"
   abort
 end
 
-# Gather all guests for event
-uri = URI.join(API_ROOT, "events/#{EVENT_ID}/guests.xml?page=1&auth_token=#{API_TOKEN}")
-http = Net::HTTP.new(uri.host, 443)
+# Gather 20 first guests for this event
+request_uri = "/api/v1/events/#{EVENT_ID}/guests.xml?page=1&auth_token=#{API_TOKEN}"
+http = Net::HTTP.new("app.mobicheckin.com", 443)
 http.use_ssl = true
 response = nil
 http.start do |http|
-  req = Net::HTTP::Get.new(uri.request_uri)
-  response = http.request(req)
+  req = Net::HTTP::Get.new request_uri
+  response = http.request req
   if response.code != "200"
     puts "Got an error #{response.code} from the API. Please check your API token or event id."
     abort
