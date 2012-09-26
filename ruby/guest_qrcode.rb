@@ -4,6 +4,8 @@
 # You can take this script as an exemple if you need to generate MobiCheckin-compatible
 # QR Code yourself. The QR Code spec can be found line 64 with the `dict` variable.
 #
+# API Reference: https://app.mobicheckin.com/api
+#
 # Usage: $ MOBICHECKIN_API_TOKEN=XXXXXX MOBICHECKIN_EVENT_ID=0000000 ./guest_qrcode.rb
 #
 # Author: Sebastien Saunier (@ssaunier)
@@ -31,7 +33,7 @@ unless EVENT_ID
   abort
 end
 
-# Gather 20 first guests for this event
+# Gather 500 first guests for this event
 request_uri = "/api/v1/events/#{EVENT_ID}/guests.xml?page=1&auth_token=#{API_TOKEN}"
 http = Net::HTTP.new("app.mobicheckin.com", 443)
 http.use_ssl = true
@@ -60,7 +62,7 @@ end
 
 # Generate QR Code URL for this guest
 dict = {
-  "UID" => text_value(:uid),  # Mandatory for MobiCheckin iOS to work
+  "UID" => text_value(:uid),  # Mandatory for MobiCheckin iOS to work (same for MobiNetwork iOS)
   "N" => "#{text_value(:'first-name')} #{text_value(:'last-name')}",
   "EMAIL" => text_value(:email),
   "ORG" => text_value(:'comany-name'),
