@@ -6,7 +6,7 @@
 #
 # Usage: $ MOBICHECKIN_API_TOKEN=XXXXXX \
 #          MOBICHECKIN_EVENT_ID=0000000 \
-#          ./download_badges
+#          ./download_badges.rb
 #
 # Author: Sebastien Saunier (@ssaunier)
 # Company: Applidget, editor of MobiCheckin (http://www.mobicheckin.com)
