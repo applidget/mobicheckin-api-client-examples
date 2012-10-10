@@ -13,6 +13,7 @@
 # License: MIT
 
 require "open-uri"
+require "fileutils"
 require 'net/https'
 require "rexml/document"
 
@@ -30,7 +31,7 @@ unless EVENT_ID
   abort
 end
 
-BADGE_FOLDER = File.join(File.expand_path(File.dirname(__FILE__)), "badges")
+BADGE_FOLDER = File.join(File.join(File.expand_path(File.dirname(__FILE__)), "badges"), EVENT_ID)
 
 def create_http
   http = Net::HTTP.new("app.mobicheckin.com", 443)
@@ -84,16 +85,18 @@ end
 def main
   unless File.directory? BADGE_FOLDER
     puts "Creating badge folder #{BADGE_FOLDER}..."
-    Dir.mkdir BADGE_FOLDER
+    FileUtils.mkdir_p BADGE_FOLDER
   end
   puts "Fetching guest list..."
   badges = guest_badges
   puts "Guest list successfully fetched. Downloading all PDF badges..."
-  badges.each do |uid, badge_url|
-    puts "Downloading #{uid}.pdf ..."
-    download_badge badge_url, File.join(BADGE_FOLDER, "#{uid}.pdf")
+  number_padding = badges.size.to_s.size
+  badges.each_with_index do |(uid, badge_url), i|
+    padded_number = "%0#{number_padding}d" % (i + 1)
+    puts "(#{padded_number}/#{badges.size}) Downloading #{uid}.pdf ..."
+    download_badge badge_url, File.join(BADGE_FOLDER, File.join("#{uid}.pdf"))
   end
-  puts "Done!"
+  puts "Done! You can go to the folder \033[0;32m#{BADGE_FOLDER}\033[0;39m"
 end
 
 main()
