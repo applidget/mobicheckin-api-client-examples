@@ -77,8 +77,17 @@ def guest_badges
 end
 
 def download_badge(url, path)
+  uri = URI.parse(url)
+  http = Net::HTTP.new uri.host, uri.port
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  http.use_ssl = true
+
+  res = (http.start do |agent|
+    agent.get(uri.request_uri)
+  end)
+
   File.open(path, 'wb') do |fo|
-    fo.write open(url).read
+    fo.write open(res['location']).read
   end
 end
 
