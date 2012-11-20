@@ -8,6 +8,9 @@
 #          MOBICHECKIN_EVENT_ID=0000000 \
 #          ./download_badges.rb
 #
+# You may want to set the MOBICHECKIN_GUEST_CATEGORY_ID env variable if you
+# want to download only badges for this category.
+#
 # Author: Sebastien Saunier (@ssaunier)
 # Company: Applidget, editor of MobiCheckin (http://www.mobicheckin.com)
 # License: MIT
@@ -29,6 +32,12 @@ EVENT_ID = ENV['MOBICHECKIN_EVENT_ID']
 unless EVENT_ID
   puts "Could not find MOBICHECKIN_EVENT_ID in your environment"
   abort
+end
+
+# Optional parameter, the guest category id
+GUEST_CATEGORY_ID = ENV['MOBICHECKIN_GUEST_CATEGORY_ID']
+if GUEST_CATEGORY_ID
+  puts "Found MOBICHECKIN_GUEST_CATEGORY_ID in your environment. Will retrieve badges only for thoses guests."
 end
 
 BADGE_FOLDER = File.join(File.join(File.expand_path(File.dirname(__FILE__)), "badges"), EVENT_ID)
@@ -67,6 +76,7 @@ def guest_badges
 
     REXML::XPath.each(doc, '//guest').each do |guest|
       if guest.elements["badge-url"]
+        next if GUEST_CATEGORY_ID && guest.elements["guest-category-id"].text != GUEST_CATEGORY_ID
         badge_url = guest.elements["badge-url"].text
         uid = guest.elements["uid"].text
         badges[uid] = badge_url
@@ -98,7 +108,11 @@ def main
   end
   puts "Fetching guest list..."
   badges = guest_badges
-  puts "Guest list successfully fetched. Downloading all PDF badges..."
+  if GUEST_CATEGORY_ID
+    puts "Guest list successfully fetched. Downloading PDF badges for guest category #{GUEST_CATEGORY_ID}..."
+  else
+    puts "Guest list successfully fetched. Downloading all PDF badges..."
+  end
   number_padding = badges.size.to_s.size
   badges.each_with_index do |(uid, badge_url), i|
     padded_number = "%0#{number_padding}d" % (i + 1)
