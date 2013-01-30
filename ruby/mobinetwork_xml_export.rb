@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby -w
 #
 # API Reference: https://app.mobicheckin.com/api
 #
@@ -12,12 +12,18 @@ require 'net/https'
 require "rexml/document"
 require 'builder'
 
-def api_token
-  api_token = "4kLsFwQTP35pkNoMDLer" # ENV['MOBICHECKIN_API_TOKEN']
+# We need a valid API token
+API_TOKEN = ENV['MOBICHECKIN_API_TOKEN']
+unless API_TOKEN
+  puts "Could not find MOBICHECKIN_API_TOKEN in your environment"
+  abort
 end
 
-def event_id
-  event_id = "4fbc9e7a283d4f45bd000007" # ENV['MOBICHECKIN_EVENT_ID']
+# We need an event id
+EVENT_ID = ENV['MOBICHECKIN_EVENT_ID']
+unless EVENT_ID
+  puts "Could not find MOBICHECKIN_EVENT_ID in your environment"
+  abort
 end
 
 def api_url_connection(url)
@@ -35,44 +41,26 @@ def api_url_connection(url)
     end
   end
   doc = REXML::Document.new(response.body)
-  if doc.root.elements.count == 0
-    puts "Your event doesn't have any guest yet."
-    exit
-  else
-    return doc
-  end
+  return doc
 end
 
 def get_xml_exhibitors
-  api_url_connection("/api/v1//events/#{event_id}/exhibitors.xml?&auth_token=#{api_token}")
+  api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors.xml?&auth_token=#{API_TOKEN}")
 end
 
 def get_xml_exhibitor_connections(exhibitor_id)
-  api_url_connection("/api/v1//events/#{event_id}/exhibitors/#{exhibitor_id}/connections.xml?&auth_token=#{api_token}")
-end
-
-def connections
-  exhibitor_ids = []
-  get_xml_exhibitors.elements.each('exhibitors/exhibitor/_id') do |ele|
-    exhibitor_ids << ele.text
-  end
-  exhibitor_ids
-  exhibitor_ids.each do |exhibitor_id|
-    puts get_xml_exhibitor_connections(exhibitor_id)
-  end
+  api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors/#{exhibitor_id}/connections.xml?&auth_token=#{API_TOKEN}")
 end
 
 def product_xml
   xml = Builder::XmlMarkup.new( :indent => 2 )
   xml.instruct! :xml, :encoding => "UTF-8"
   
-  exhibitor_ids = get_exhibitor_ids
   xml.CareerFare do |carreer_fare|
     get_xml_exhibitors.elements.each('exhibitors/exhibitor/_id') do |exhibitor_id|
       carreer_fare.HostSite exhibitor_id.text
     end
   end
-  
 end
 
 puts product_xml
