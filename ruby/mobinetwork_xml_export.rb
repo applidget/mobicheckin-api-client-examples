@@ -71,12 +71,12 @@ def guest_with_uid(uid)
   end
 end
 
-def get_exhibitors_ids
-  exhibitors_ids = []
+def get_exhibitors
+  exhibitors = {}
   REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor|
-    exhibitors_ids << exhibitor.elements["_id"].text
+    exhibitors[exhibitor.elements["_id"].text] = exhibitor.elements["name"].text
   end
-  exhibitors_ids
+  exhibitors
 end
 
 def get_candidate_comments(comments_xml)
@@ -115,8 +115,8 @@ def main
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
   end
   
-  get_exhibitors_ids.each do |exhibitor_id|
-    File.open(File.join(EXHIBITORS_CONNECTIONS_FOLDER, File.join("#{exhibitor_id}.txt")), 'wb') do |f|
+  get_exhibitors.each_key do |exhibitor_id|
+    File.open(File.join(EXHIBITORS_CONNECTIONS_FOLDER, File.join("#{get_exhibitors[exhibitor_id].downcase.sub(' ', '_')}.xml")), 'wb') do |f|
       f.write build_exhibitor_xml(exhibitor_id)
     end
   end
