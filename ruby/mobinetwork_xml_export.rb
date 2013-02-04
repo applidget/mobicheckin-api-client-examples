@@ -27,7 +27,7 @@ unless EVENT_ID
   abort
 end
 
-BADGE_FOLDER = File.join(File.join(File.expand_path(File.dirname(__FILE__)), "exhibitors_connections"), EVENT_ID)
+EXHIBITORS_CONNECTIONS_FOLDER = File.join(File.join(File.expand_path(File.dirname(__FILE__)), "exhibitors_connections"), EVENT_ID)
 
 def api_url_connection(url)
   request_uri = url
@@ -109,9 +109,16 @@ def build_exhibitor_xml(exhibitor_id)
   end
 end
 
-def main
+def main 
+  unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
+    puts "Creating exhibitors connections folder #{BADGE_FOLDER}..."
+    FileUtils.mkdir_p BADGE_FOLDER
+  end
+  
   get_exhibitors_ids.each do |exhibitor_id|
-    puts build_exhibitor_xml(exhibitor_id)
+    File.open(File.join(EXHIBITORS_CONNECTIONS_FOLDER, File.join("#{exhibitor_id}.txt")), 'wb') do |f|
+      f.write build_exhibitor_xml(exhibitor_id)
+    end
   end
 end
 
