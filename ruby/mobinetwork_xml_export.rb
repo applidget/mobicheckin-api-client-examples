@@ -71,13 +71,10 @@ end
 def product_xml
   xml = Builder::XmlMarkup.new( :indent => 2 )
   xml.instruct! :xml, :encoding => "UTF-8"
-  
   xml.CareerFare do |carreer_fare|
-    
     REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor_elements|
       xml.Exhibitor do |exhibitor|
         exhibitor.name exhibitor_elements.elements["name"].text
-        
         REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_elements.elements["_id"].text), '//connection').each do |connection|
           if connection
             xml.Candidate do |candidate|
@@ -85,7 +82,6 @@ def product_xml
                 guest = guest_with_uid(connection.elements["guest-uid"].text)
                 candidate.email guest.elements["email"].text
               end
-              
               REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
                 if comment
                   xml.RecruiterComments do |recruiter_comments|
@@ -93,14 +89,11 @@ def product_xml
                   end
                 end
               end
-              
             end
           end
         end
-        
       end
     end
-    
   end
 end
 
