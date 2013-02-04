@@ -11,6 +11,7 @@ require 'cgi'
 require 'net/https'
 require "rexml/document"
 require 'builder'
+require "fileutils"
 
 # We need a valid API token
 API_TOKEN = ENV['MOBICHECKIN_API_TOKEN']
@@ -25,6 +26,8 @@ unless EVENT_ID
   puts "Could not find MOBICHECKIN_EVENT_ID in your environment"
   abort
 end
+
+BADGE_FOLDER = File.join(File.join(File.expand_path(File.dirname(__FILE__)), "exhibitors_connections"), EVENT_ID)
 
 def api_url_connection(url)
   request_uri = url
@@ -91,7 +94,7 @@ end
 def build_exhibitor_xml(exhibitor_id)
   xml = Builder::XmlMarkup.new( :indent => 2 )
   xml.CareerFare do |career_fare|
-    career_fare.HostSite "SE"
+    career_fare.HostSite
     REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
       xml.Candidate do |candidate|
         if guest_with_uid(connection.elements["guest-uid"].text)
@@ -107,8 +110,9 @@ def build_exhibitor_xml(exhibitor_id)
 end
 
 def main
-  
+  get_exhibitors_ids.each do |exhibitor_id|
+    puts build_exhibitor_xml(exhibitor_id)
+  end
 end
 
-# puts build_exhibitor_xml("5056e1b6caff106f3f000b31")
 main
