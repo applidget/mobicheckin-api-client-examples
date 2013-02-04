@@ -56,10 +56,6 @@ def get_xml_guests(page_number)
   api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
 end
 
-def get_xml_comments
-  api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
-end
-
 def guest_with_uid(uid)
   page_number = 1
   while get_xml_guests(page_number.to_s)
@@ -77,28 +73,34 @@ def product_xml
   xml.instruct! :xml, :encoding => "UTF-8"
   
   xml.CareerFare do |carreer_fare|
+    
     REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor_elements|
       xml.Exhibitor do |exhibitor|
         exhibitor.name exhibitor_elements.elements["name"].text
+        
         REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_elements.elements["_id"].text), '//connection').each do |connection|
           if connection
             xml.Candidate do |candidate|
               if guest_with_uid(connection.elements["guest-uid"].text)
                 guest = guest_with_uid(connection.elements["guest-uid"].text)
                 candidate.email guest.elements["email"].text
-                REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
-                  if comment
-                    xml.RecruiterComments do |recruiter_comments|
-                      recruiter_comments.comment comment.elements["content"].text
-                    end
+              end
+              
+              REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
+                if comment
+                  xml.RecruiterComments do |recruiter_comments|
+                    recruiter_comments.comment comment.elements["content"].text
                   end
                 end
               end
+              
             end
           end
         end
+        
       end
     end
+    
   end
 end
 
