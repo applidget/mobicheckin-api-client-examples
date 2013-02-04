@@ -86,11 +86,11 @@ def product_xml
               if guest_with_uid(connection.elements["guest-uid"].text)
                 guest = guest_with_uid(connection.elements["guest-uid"].text)
                 candidate.email guest.elements["email"].text
-              end
-              REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
-                if comment
-                  xml.RecruiterComments do |recruiter_comments|
-                    recruiter_comments.comment comment.elements["content"].text
+                REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
+                  if comment
+                    xml.RecruiterComments do |recruiter_comments|
+                      recruiter_comments.comment comment.elements["content"].text
+                    end
                   end
                 end
               end
