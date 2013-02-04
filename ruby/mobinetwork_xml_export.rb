@@ -111,8 +111,8 @@ end
 
 def main 
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
-    puts "Creating exhibitors connections folder #{BADGE_FOLDER}..."
-    FileUtils.mkdir_p BADGE_FOLDER
+    puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
+    FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
   end
   
   get_exhibitors_ids.each do |exhibitor_id|
