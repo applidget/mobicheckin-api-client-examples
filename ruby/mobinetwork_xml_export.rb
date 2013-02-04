@@ -56,6 +56,10 @@ def get_xml_guests(page_number)
   api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
 end
 
+def get_xml_comments
+  api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
+end
+
 def guest_with_uid(uid)
   page_number = 1
   while get_xml_guests(page_number.to_s)
@@ -82,6 +86,13 @@ def product_xml
               if guest_with_uid(connection.elements["guest-uid"].text)
                 guest = guest_with_uid(connection.elements["guest-uid"].text)
                 candidate.email guest.elements["email"].text
+              end
+              REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
+                if comment
+                  xml.RecruiterComments do |recruiter_comments|
+                    recruiter_comments.comment comment.elements["content"].text
+                  end
+                end
               end
             end
           end
