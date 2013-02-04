@@ -68,33 +68,47 @@ def guest_with_uid(uid)
   end
 end
 
-def product_xml
+def get_exhibitors_ids
+  exhibitors_ids = []
+  REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor|
+    exhibitors_ids << exhibitor.elements["_id"].text
+  end
+  exhibitors_ids
+end
+
+def get_candidate_comments(comments_xml)
+  comments = ""
+  REXML::XPath.each(comments_xml, 'comment').each do |comment|
+    if comments == ""
+      comments = comment.elements["content"].text
+    else
+      comments += ";" + comment.elements["content"].text
+    end
+  end
+  comments
+end
+
+def build_exhibitor_xml(exhibitor_id)
   xml = Builder::XmlMarkup.new( :indent => 2 )
-  xml.instruct! :xml, :encoding => "UTF-8"
-  xml.CareerFare do |carreer_fare|
-    REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor_elements|
-      xml.Exhibitor do |exhibitor|
-        exhibitor.name exhibitor_elements.elements["name"].text
-        REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_elements.elements["_id"].text), '//connection').each do |connection|
-          if connection
-            xml.Candidate do |candidate|
-              if guest_with_uid(connection.elements["guest-uid"].text)
-                guest = guest_with_uid(connection.elements["guest-uid"].text)
-                candidate.email guest.elements["email"].text
-              end
-              REXML::XPath.each(connection.elements["comments"], '//comment').each do |comment|
-                if comment
-                  xml.RecruiterComments do |recruiter_comments|
-                    recruiter_comments.comment comment.elements["content"].text
-                  end
-                end
-              end
-            end
-          end
+  xml.CareerFare do |career_fare|
+    career_fare.HostSite "SE"
+    REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
+      xml.Candidate do |candidate|
+        if guest_with_uid(connection.elements["guest-uid"].text)
+          guest = guest_with_uid(connection.elements["guest-uid"].text)
+          candidate.Email guest.elements["email"].text
+          candidate.RecruiterEmail
+          candidate.CCEmail
+          candidate.RecruiterComments get_candidate_comments(connection.elements["comments"])
         end
       end
     end
   end
 end
 
-puts product_xml
+def main
+  
+end
+
+# puts build_exhibitor_xml("5056e1b6caff106f3f000b31")
+main
