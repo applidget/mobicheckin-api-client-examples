@@ -114,13 +114,11 @@ def main
     xml.CareerFare do |career_fare|
       career_fare.HostSite HOST_SITE
       get_exhibitors.each do |exhibitor_id, payload|
-        puts payload
         recruiter_email = payload[:meta_data] #In this usecase we have put a recruiter email
         exhibitor_xml(career_fare, exhibitor_id, recruiter_email)
       end
     end
-    f.write xml
-    f.close
+    f.write xml.target!
   end
 end
 
