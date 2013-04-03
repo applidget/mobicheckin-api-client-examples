@@ -20,6 +20,8 @@ CC_EMAIL = ENV['CC_EMAIL']
 # We need an event id
 EVENT_ID = ENV['MOBICHECKIN_EVENT_ID']
 
+NB_GUEST_PER_PAGE = 500
+
 ["API_TOKEN", "EVENT_ID", "CC_EMAIL", "HOST_SITE"].each do |var_name|
   unless Kernel.const_get var_name
     puts "Could not find #{var_name} in your environment"
@@ -70,15 +72,16 @@ end
 
 def build_guests_hash
   @guest = {}
-  page_number = 1
-  nb_guest = 0
-  number_of_guest = get_number_of_guest.to_i
-  while nb_guest != number_of_guest
+  
+  expected_nb_guests = get_number_of_guest.to_i
+  array_divmod = expected_nb_guests.divmod NB_GUEST_PER_PAGE
+  nb_pages = array_divmod.first
+  nb_pages =+ 1 if array_divmod.last > 0
+  
+  for page_number in 1..nb_pages
     REXML::XPath.each(get_xml_guests(page_number.to_s), '//guest').each do |guest|
-      nb_guest += 1
-      @guest[guest.elements["uid"].text] = guest.elements["email"].text
+      @guest[guest.elements["uid"].text] = guest.elements
     end
-    page_number += 1
   end
 end
 
@@ -99,8 +102,9 @@ end
 def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
   REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
     xml_node.Candidate do |candidate|
-      if @guest[connection.elements["guest-uid"].text]
-        candidate.Email @guest[connection.elements["guest-uid"].text]
+      uid = connection.elements["guest-uid"].text
+      if @guest[uid]
+        candidate.Email @guest[uid]["email"].text
         candidate.RecruiterEmail recruiter_email
         candidate.CCEmail CC_EMAIL
         candidate.RecruiterComments do |comments|
