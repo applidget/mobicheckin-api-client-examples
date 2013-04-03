@@ -57,6 +57,7 @@ def get_xml_exhibitor_connections(exhibitor_id)
 end
 
 def get_xml_guests(page_number)
+  puts "Querying API for guests"
   api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
 end
 
