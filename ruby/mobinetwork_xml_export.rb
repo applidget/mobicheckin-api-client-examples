@@ -69,14 +69,14 @@ def get_number_of_guest
 end
 
 def build_guests_hash
-  @guests = []
+  @guest = {}
   page_number = 1
   nb_guest = 0
   number_of_guest = get_number_of_guest.to_i
   while nb_guest != number_of_guest
     REXML::XPath.each(get_xml_guests(page_number.to_s), '//guest').each do |guest|
       nb_guest += 1
-      @guests << {:email => guest.elements["email"].text, :uid => guest.elements["uid"].text}
+      @guest[guest.elements["uid"].text] = guest.elements["email"].text
     end
     page_number += 1
   end
@@ -99,12 +99,8 @@ end
 def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
   REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
     xml_node.Candidate do |candidate|
-      guest = nil
-      @guests.each do |g|
-        guest = g if g[:uid] == connection.elements["guest-uid"].text
-      end
-      if guest
-        candidate.Email guest[:email]
+      if @guest[connection.elements["guest-uid"].text]
+        candidate.Email @guest[connection.elements["guest-uid"].text]
         candidate.RecruiterEmail recruiter_email
         candidate.CCEmail CC_EMAIL
         candidate.RecruiterComments do |comments|
@@ -117,7 +113,7 @@ end
 
 def main
   build_guests_hash
-  
+
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
     puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
