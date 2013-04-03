@@ -26,7 +26,6 @@ EVENT_ID = ENV['MOBICHECKIN_EVENT_ID']
   end
 end
   
-
 EXHIBITORS_CONNECTIONS_FOLDER = File.join(File.join(File.expand_path(File.dirname(__FILE__)), "exhibitors_connections"), EVENT_ID)
 
 def api_url_connection(url)
@@ -59,13 +58,25 @@ def get_xml_guests(page_number)
   api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
 end
 
-def guest_with_uid(uid)
+def get_xml_event
+  api_url_connection("/api/v1/events/#{EVENT_ID}.xml?auth_token=#{API_TOKEN}")
+end
+
+def get_number_of_guest
+  REXML::XPath.each(get_xml_event, '//event').each do |event|
+    return event.elements["guest-count"].text
+  end
+end
+
+def build_guests_hash
+  @guests = []
   page_number = 1
-  while get_xml_guests(page_number.to_s)
+  nb_guest = 0
+  number_of_guest = get_number_of_guest.to_i
+  while nb_guest != number_of_guest
     REXML::XPath.each(get_xml_guests(page_number.to_s), '//guest').each do |guest|
-      if guest.elements["uid"].text == uid
-        return guest
-      end
+      nb_guest += 1
+      @guests << {:email => guest.elements["email"].text, :uid => guest.elements["uid"].text}
     end
     page_number += 1
   end
@@ -88,9 +99,12 @@ end
 def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
   REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
     xml_node.Candidate do |candidate|
-      if guest_with_uid(connection.elements["guest-uid"].text)
-        guest = guest_with_uid(connection.elements["guest-uid"].text)
-        candidate.Email guest.elements["email"].text
+      guest = nil
+      @guests.each do |g|
+        guest = g if g[:uid] == connection.elements["guest-uid"].text
+      end
+      if guest
+        candidate.Email guest[:email]
         candidate.RecruiterEmail recruiter_email
         candidate.CCEmail CC_EMAIL
         candidate.RecruiterComments do |comments|
@@ -101,7 +115,9 @@ def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
   end
 end
 
-def main 
+def main
+  build_guests_hash
+  
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
     puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
