@@ -101,27 +101,37 @@ def insert_candidate_comments_in_node(xml_node, comments)
 end
 
 def metadata_from_guest(guest)
+  metadata = {}
   guest["guest_metadata"].each do |gm|
-    puts gm["key"]
-    puts gm["value"]
+    case gm['name']
+    when "Utbildning" then metadata["Utbildning"] = gm["value"]
+    when "kategori" then metadata["Kategori"] = gm["value"]
+    when "Erfarenhet" then metadata["Erfarenhet"] = gm["value"]
+    end
   end
+  metadata
 end
 
 def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
   fetch_exhibitor_connections(exhibitor_id).each do |connection|
-    xml_node.Candidate do |candidate|
-      uid = connection["guest_uid"]
-      guest = @guests[uid]
-      if guest
-        metadata_from_guest guest
+    uid = connection["guest_uid"]
+    guest = @guests[uid]
+    if guest
+      xml_node.Candidate do |candidate|   
+        metadata = metadata_from_guest guest
         candidate.Email guest["email"]
         candidate.RecruiterEmail recruiter_email
         candidate.CCEmail CC_EMAIL
+        candidate.Utbildning metadata["Utbildning"]
+        candidate.Kategori metadata["Kategori"]
+        candidate.Erfarenhet metadata["Erfarenhet"]
         candidate.RecruiterComments do |comments_node|
           insert_candidate_comments_in_node(comments_node, connection["comments"])
         end
-      end
-    end
+      end    
+    else
+      puts "Skipping guest with uid #{connection["guest_uid"]}"
+    end        
   end
 end
 
