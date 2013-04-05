@@ -9,7 +9,7 @@
 
 require 'cgi'
 require 'net/https'
-require "rexml/document"
+require "nokogiri"
 require 'builder'
 require "fileutils"
 
@@ -44,8 +44,8 @@ def api_url_connection(url)
       abort
     end
   end
-  doc = REXML::Document.new(response.body)
-  return doc
+  data = Nokogiri::XML.parse(response.body)
+  return data
 end
 
 def get_xml_exhibitors
@@ -53,12 +53,13 @@ def get_xml_exhibitors
 end
 
 def get_xml_exhibitor_connections(exhibitor_id)
+  debugger
   api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors/#{exhibitor_id}/connections.xml?&auth_token=#{API_TOKEN}")
 end
 
 def get_xml_guests(page_number)
   puts "Querying API for guests"
-  api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
+  api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}&guest_metadata=true")
 end
 
 def get_xml_event
@@ -66,13 +67,13 @@ def get_xml_event
 end
 
 def get_number_of_guest
-  REXML::XPath.each(get_xml_event, '//event').each do |event|
-    return event.elements["guest-count"].text
+  get_xml_event.xpath("//event").each do |event|
+    return event.xpath("//guest-count").text.to_i
   end
 end
 
 def build_guests_hash
-  @guest = {}
+  @guests = {}
   
   expected_nb_guests = get_number_of_guest.to_i
   array_divmod = expected_nb_guests.divmod NB_GUEST_PER_PAGE
@@ -80,36 +81,50 @@ def build_guests_hash
   nb_pages =+ 1 if array_divmod.last > 0
   
   for page_number in 1..nb_pages
-    REXML::XPath.each(get_xml_guests(page_number.to_s), '//guest').each do |guest|
-      @guest[guest.elements["uid"].text] = guest.elements
+    doc = get_xml_guests(page_number.to_s)
+    doc.xpath('//guest').each do |guest|
+      @guests[guest.xpath("//uid").text] = guest
     end
   end
 end
 
 def get_exhibitors
   exhibitors = {}
-  REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor|
-    exhibitors[exhibitor.elements["_id"].text] = { :name => exhibitor.elements["name"].text, :meta_data => exhibitor.elements["meta-data"].text  }
+  doc = get_xml_exhibitors
+  doc.xpath("//exhibitor").each do |exhibitor|
+    debugger
+    exhibitors[exhibitor.xpath("//_id").first.text] = { :name => exhibitor.xpath("//name").text, :meta_data => exhibitor.xpath("//meta-data").text  }
   end
   exhibitors
 end
 
 def get_candidate_comments(xml_node, comments_xml)
-  REXML::XPath.each(comments_xml, 'comment').each do |comment|
-    xml_node.RecruiterComment comment.elements["content"].text unless comment == ""
+  comments_xml.xpath('//comment').each do |comment|
+    xml_node.RecruiterComment comment.xpath("//content").text unless comment == ""
+  end
+end
+
+def metadata_from_guest(guest)
+  guest.xpath("//guest-metadatum").each do |gm|
+    debugger
+    puts gm.xpath("//key")
+    puts gm.xpath("//value")
   end
 end
 
 def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
-  REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
+  get_xml_exhibitor_connections(exhibitor_id).xpath('//connection').each do |connection|
     xml_node.Candidate do |candidate|
-      uid = connection.elements["guest-uid"].text
-      if @guest[uid]
-        candidate.Email @guest[uid]["email"].text
+      uid = connection.xpath("//guest-uid").text
+      guest = @guests[uid]
+      if guest
+        debugger
+        metadata_from_guest guest
+        candidate.Email guest.xpath("//email").text
         candidate.RecruiterEmail recruiter_email
         candidate.CCEmail CC_EMAIL
         candidate.RecruiterComments do |comments|
-          get_candidate_comments(comments, connection.elements["comments"])
+          get_candidate_comments(comments, connection.xpath("//comments"))
         end
       end
     end
