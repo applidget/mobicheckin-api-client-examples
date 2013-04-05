@@ -9,9 +9,9 @@
 
 require 'cgi'
 require 'net/https'
-require "rexml/document"
 require 'builder'
 require "fileutils"
+require "json"
 
 # We need a valid API token
 API_TOKEN = ENV['MOBICHECKIN_API_TOKEN']
@@ -44,34 +44,32 @@ def api_url_connection(url)
       abort
     end
   end
-  doc = REXML::Document.new(response.body)
-  return doc
+  return JSON.parse response.body
 end
 
-def get_xml_exhibitors
-  api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors.xml?&auth_token=#{API_TOKEN}")
+def fetch_exhibitors
+  api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors.json?&auth_token=#{API_TOKEN}")
 end
 
-def get_xml_exhibitor_connections(exhibitor_id)
-  api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors/#{exhibitor_id}/connections.xml?&auth_token=#{API_TOKEN}")
+def fetch_exhibitor_connections(exhibitor_id)
+  api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors/#{exhibitor_id}/connections.json?&auth_token=#{API_TOKEN}")
 end
 
-def get_xml_guests(page_number)
-  api_url_connection("/api/v1/events/#{EVENT_ID}/guests.xml?page=#{page_number}&auth_token=#{API_TOKEN}")
+def fetch_guests(page_number)
+  puts "Querying API for guests"
+  api_url_connection("/api/v1/events/#{EVENT_ID}/guests.json?page=#{page_number}&auth_token=#{API_TOKEN}&guest_metadata=true")
 end
 
-def get_xml_event
-  api_url_connection("/api/v1/events/#{EVENT_ID}.xml?auth_token=#{API_TOKEN}")
+def fetch_event
+  api_url_connection("/api/v1/events/#{EVENT_ID}.json?auth_token=#{API_TOKEN}")
 end
 
 def get_number_of_guest
-  REXML::XPath.each(get_xml_event, '//event').each do |event|
-    return event.elements["guest-count"].text
-  end
+  fetch_event["guest_count"]
 end
 
 def build_guests_hash
-  @guest = {}
+  @guests = {}
   
   expected_nb_guests = get_number_of_guest.to_i
   array_divmod = expected_nb_guests.divmod NB_GUEST_PER_PAGE
@@ -79,45 +77,65 @@ def build_guests_hash
   nb_pages =+ 1 if array_divmod.last > 0
   
   for page_number in 1..nb_pages
-    REXML::XPath.each(get_xml_guests(page_number.to_s), '//guest').each do |guest|
-      @guest[guest.elements["uid"].text] = guest.elements
+    doc = fetch_guests(page_number.to_s)
+    doc.each do |guest|
+      @guests[guest["uid"]] = guest
     end
   end
 end
 
 def get_exhibitors
   exhibitors = {}
-  REXML::XPath.each(get_xml_exhibitors, '//exhibitor').each do |exhibitor|
-    exhibitors[exhibitor.elements["_id"].text] = { :name => exhibitor.elements["name"].text, :meta_data => exhibitor.elements["meta-data"].text  }
+  exhibitors_hash = fetch_exhibitors
+  exhibitors_hash.each do |ex|
+    exhibitors[ex['_id']] = { :name => ex["name"], :meta_data => ex["meta_data"] }
   end
   exhibitors
 end
 
-def get_candidate_comments(xml_node, comments_xml)
-  REXML::XPath.each(comments_xml, 'comment').each do |comment|
-    xml_node.RecruiterComment comment.elements["content"].text unless comment == ""
+def insert_candidate_comments_in_node(xml_node, comments)
+  comments.each do |comment|
+    xml_node.RecruiterComment comment["content"] unless comment == ""
   end
 end
 
+def metadata_from_guest(guest)
+  metadata = {}
+  guest["guest_metadata"].each do |gm|
+    case gm['name']
+    when "Utbildning" then metadata["Utbildning"] = gm["value"]
+    when "kategori" then metadata["Kategori"] = gm["value"]
+    when "Erfarenhet" then metadata["Erfarenhet"] = gm["value"]
+    end
+  end
+  metadata
+end
+
 def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
-  REXML::XPath.each(get_xml_exhibitor_connections(exhibitor_id), '//connection').each do |connection|
-    xml_node.Candidate do |candidate|
-      uid = connection.elements["guest-uid"].text
-      if @guest[uid]
-        candidate.Email @guest[uid]["email"].text
+  fetch_exhibitor_connections(exhibitor_id).each do |connection|
+    uid = connection["guest_uid"]
+    guest = @guests[uid]
+    if guest
+      xml_node.Candidate do |candidate|   
+        metadata = metadata_from_guest guest
+        candidate.Email guest["email"]
         candidate.RecruiterEmail recruiter_email
         candidate.CCEmail CC_EMAIL
-        candidate.RecruiterComments do |comments|
-          get_candidate_comments(comments, connection.elements["comments"])
+        candidate.Utbildning metadata["Utbildning"]
+        candidate.Kategori metadata["Kategori"]
+        candidate.Erfarenhet metadata["Erfarenhet"]
+        candidate.RecruiterComments do |comments_node|
+          insert_candidate_comments_in_node(comments_node, connection["comments"])
         end
-      end
-    end
+      end    
+    else
+      puts "Skipping guest with uid #{connection["guest_uid"]}"
+    end        
   end
 end
 
 def main
   build_guests_hash
-
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
     puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
