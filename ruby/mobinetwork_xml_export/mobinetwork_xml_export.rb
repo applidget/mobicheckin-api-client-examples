@@ -53,7 +53,6 @@ def get_xml_exhibitors
 end
 
 def get_xml_exhibitor_connections(exhibitor_id)
-  debugger
   api_url_connection("/api/v1/events/#{EVENT_ID}/exhibitors/#{exhibitor_id}/connections.xml?&auth_token=#{API_TOKEN}")
 end
 
@@ -90,10 +89,11 @@ end
 
 def get_exhibitors
   exhibitors = {}
-  doc = get_xml_exhibitors
-  doc.xpath("//exhibitor").each do |exhibitor|
-    debugger
-    exhibitors[exhibitor.xpath("//_id").first.text] = { :name => exhibitor.xpath("//name").text, :meta_data => exhibitor.xpath("//meta-data").text  }
+  exhibitors_doc = get_xml_exhibitors
+  debugger
+  exhibitors_doc.xpath("//exhibitor").to_a.each do |ex|
+    puts "Exhibitor in #{ex.xpath("//_id").first.text}"
+    exhibitors[ex.xpath("//_id").first.text] = { :name => ex.xpath("//name").text, :meta_data => ex.xpath("//meta-data").text  }
   end
   exhibitors
 end
@@ -133,7 +133,7 @@ end
 
 def main
   build_guests_hash
-
+  puts "done"
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
     puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
@@ -145,7 +145,9 @@ def main
     xml.instruct! :xml, :encoding => "UTF-8"
     xml.CareerFare do |career_fare|
       career_fare.HostSite HOST_SITE
+      debugger
       get_exhibitors.each do |exhibitor_id, payload|
+        puts "Exhibitor out"
         recruiter_email = payload[:meta_data] #In this usecase we have put a recruiter email
         exhibitor_xml(career_fare, exhibitor_id, recruiter_email)
       end
