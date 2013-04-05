@@ -88,7 +88,6 @@ def get_exhibitors
   exhibitors = {}
   exhibitors_hash = fetch_exhibitors
   exhibitors_hash.each do |ex|
-    puts "Exhibitor in #{ex['_id']}"
     exhibitors[ex['_id']] = { :name => ex["name"], :meta_data => ex["meta_data"] }
   end
   exhibitors
@@ -137,7 +136,6 @@ end
 
 def main
   build_guests_hash
-  puts "done"
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
     puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
@@ -150,7 +148,6 @@ def main
     xml.CareerFare do |career_fare|
       career_fare.HostSite HOST_SITE
       get_exhibitors.each do |exhibitor_id, payload|
-        puts "Exhibitor out"
         recruiter_email = payload[:meta_data] #In this usecase we have put a recruiter email
         exhibitor_xml(career_fare, exhibitor_id, recruiter_email)
       end
