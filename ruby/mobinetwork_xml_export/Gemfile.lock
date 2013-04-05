@@ -9,7 +9,7 @@ GEM
       debugger-ruby_core_source (~> 1.2.0)
     debugger-linecache (1.2.0)
     debugger-ruby_core_source (1.2.0)
-    nokogiri (1.5.9)
+    json (1.7.7)
 
 PLATFORMS
   ruby
@@ -17,4 +17,4 @@ PLATFORMS
 DEPENDENCIES
   builder
   debugger
-  nokogiri
+  json
