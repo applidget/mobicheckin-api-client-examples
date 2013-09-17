@@ -72,10 +72,10 @@ def build_guests_hash
   @guests = {}
   
   expected_nb_guests = get_number_of_guest.to_i
+
   array_divmod = expected_nb_guests.divmod NB_GUEST_PER_PAGE
   nb_pages = array_divmod.first
-  nb_pages =+ 1 if array_divmod.last > 0
-  
+  nb_pages += 1 if array_divmod.last > 0
   for page_number in 1..nb_pages
     doc = fetch_guests(page_number.to_s)
     doc.each do |guest|
