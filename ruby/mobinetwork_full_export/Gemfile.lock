@@ -10,6 +10,7 @@ GEM
     debugger-linecache (1.2.0)
     debugger-ruby_core_source (1.2.0)
     json (1.7.7)
+    writeexcel (0.6.16)
 
 PLATFORMS
   ruby
@@ -18,3 +19,4 @@ DEPENDENCIES
   builder
   debugger
   json
+  writeexcel

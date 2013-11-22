@@ -91,46 +91,16 @@ def get_exhibitors
   end
   exhibitors
 end
-
-def insert_candidate_comments_in_node(xml_node, comments)
-  comments.each do |comment|
-    xml_node.RecruiterComment comment["content"] unless comment == ""
-  end
-end
-
+INTERESTING_MEDATA = ["WHICH I THE INTEREST?", "WHAT'S IS IT", "STATUS", "COST"]
 def metadata_from_guest(guest)
   metadata = {}
+  
   guest["guest_metadata"].each do |gm|
-    case gm['name']
-    when "Utbildning" then metadata["Utbildning"] = gm["value"]
-    when "kategori" then metadata["Kategori"] = gm["value"]
-    when "Erfarenhet" then metadata["Erfarenhet"] = gm["value"]
-    end
+    key  = gm['name']
+    next unless INTERESTING_MEDATA.include? key
+    metadata[key] = gm["value"]
   end
   metadata
-end
-
-def exhibitor_xml(xml_node, exhibitor_id, recruiter_email)
-  fetch_exhibitor_connections(exhibitor_id).each do |connection|
-    uid = connection["guest_uid"]
-    guest = @guests[uid]
-    if guest
-      xml_node.Candidate do |candidate|   
-        metadata = metadata_from_guest guest
-        candidate.Email guest["email"]
-        candidate.RecruiterEmail recruiter_email
-        candidate.CCEmail CC_EMAIL
-        candidate.Utbildning metadata["Utbildning"]
-        candidate.Kategori metadata["Kategori"]
-        candidate.Erfarenhet metadata["Erfarenhet"]
-        candidate.RecruiterComments do |comments_node|
-          insert_candidate_comments_in_node(comments_node, connection["comments"])
-        end
-      end    
-    else
-      puts "Skipping guest with uid #{connection["guest_uid"]}"
-    end        
-  end
 end
 
 def main
@@ -139,20 +109,25 @@ def main
     puts "Creating exhibitors connections folder #{EXHIBITORS_CONNECTIONS_FOLDER}..."
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
   end
-  
-  file_name = File.join(EXHIBITORS_CONNECTIONS_FOLDER, "export.xml")
-  File.open(file_name, 'wb') do |f|
-    xml = Builder::XmlMarkup.new( :indent => 2 )
-    xml.instruct! :xml, :encoding => "UTF-8"
-    xml.CareerFare do |career_fare|
-      career_fare.HostSite HOST_SITE
-      get_exhibitors.each do |exhibitor_id, payload|
-        recruiter_email = payload[:meta_data] #In this usecase we have put a recruiter email
-        exhibitor_xml(career_fare, exhibitor_id, recruiter_email)
+  file_name = File.join(EXHIBITORS_CONNECTIONS_FOLDER, "export.csv")
+  file = File.open(file_name, 'wb') do |f|
+    get_exhibitors.each do |exhibitor_id, payload| do
+      name = payload["name"]
+      email = payload["email"]
+      fetch_exhibitor_connections(exhibitor_id).each do |connection|
+        line = []
+        uid = connection["guest_uid"]
+        line << uid
+        guest = @guests[uid]
+        metadata = metadata_from_guest guest
+        INTERESTING_MEDATA.each do |mdkey|
+          line << metadata[mdkey]
+        end
+        f.write line
       end
     end
-    f.write xml.target!
   end
+  file.close
 end
 
 main
