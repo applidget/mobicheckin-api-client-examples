@@ -63,6 +63,8 @@ def guest_badges
       response = address.request req
       if response.code != "200"
         puts "Got an error #{response.code} from the API. Please check your API token or event id."
+        debugger
+        puts response.body
         abort
       end
     end
