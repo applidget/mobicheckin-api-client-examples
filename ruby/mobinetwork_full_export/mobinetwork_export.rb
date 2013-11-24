@@ -1,3 +1,4 @@
+# encoding: UTF-8
 #!/usr/bin/env ruby -w
 #
 # API Reference: https://app.mobicheckin.com/api
@@ -87,11 +88,12 @@ def get_exhibitors
   exhibitors = {}
   exhibitors_hash = fetch_exhibitors
   exhibitors_hash.each do |ex|
+    ex_id = ex['_id']
     exhibitors[ex['_id']] = { :name => ex["name"], :meta_data => ex["meta_data"], :email => ex["email"] }
   end
   exhibitors
 end
-INTERESTING_MEDATA = ["WHICH I THE INTEREST?", "WHAT'S IS IT", "STATUS", "COST"]
+INTERESTING_MEDATA = ["WHICH IS THE INTEREST?", "WHAT'S IS IT ?", "STATUS", "COST"]
 def metadata_from_guest(guest)
   metadata = {}
   
@@ -103,6 +105,23 @@ def metadata_from_guest(guest)
   metadata
 end
 
+def write_line(file, line_nb, list)
+  cleaned_list = list.map do |item|
+    if item.is_a? Numeric
+      item
+    else
+      item.gsub("\"", "")
+      item.gsub(";", "")
+      item.gsub("\n", "")
+    end
+  end
+  cleaned_list2 = cleaned_list.map do |item|
+    "\"#{item}\""
+  end
+  file.write(cleaned_list2.join(","))
+  file.write("\n")
+end
+
 def main
   build_guests_hash
   unless File.directory? EXHIBITORS_CONNECTIONS_FOLDER
@@ -110,24 +129,40 @@ def main
     FileUtils.mkdir_p EXHIBITORS_CONNECTIONS_FOLDER
   end
   file_name = File.join(EXHIBITORS_CONNECTIONS_FOLDER, "export.csv")
+  line_number = 1
   file = File.open(file_name, 'wb') do |f|
-    get_exhibitors.each do |exhibitor_id, payload| do
-      name = payload["name"]
-      email = payload["email"]
-      fetch_exhibitor_connections(exhibitor_id).each do |connection|
+    ex_count = 0
+    get_exhibitors.each do |exhibitor_id, payload|
+
+      name = payload[:name]
+      email = payload[:email]
+      puts "Fetched #{ex_count} exhibitors" if ex_count % 10 == 0
+      ex_count += 1      
+      connections = fetch_exhibitor_connections(exhibitor_id)
+      connections.each do |connection|
         line = []
         uid = connection["guest_uid"]
-        line << uid
+        comments = connection["comments"]
         guest = @guests[uid]
-        metadata = metadata_from_guest guest
+        next if guest.nil?
+        line << email
+        line << name
+        line << connection["author"].to_i
+        line << uid
+        line << guest["first_name"]
+        line << guest["last_name"]
+        metadata = metadata_from_guest guest        
         INTERESTING_MEDATA.each do |mdkey|
           line << metadata[mdkey]
         end
-        f.write line
+        comments.each do |comment|
+          line << comment["content"]
+        end
+        write_line(f, line_number, line)
+        line_number +=1
       end
     end
   end
-  file.close
 end
 
 main

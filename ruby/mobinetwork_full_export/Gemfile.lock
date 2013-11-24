@@ -1,16 +1,16 @@
 GEM
   remote: http://rubygems.org/
   specs:
-    builder (3.2.0)
+    builder (3.2.2)
     columnize (0.3.6)
-    debugger (1.5.0)
+    debugger (1.6.2)
       columnize (>= 0.3.1)
       debugger-linecache (~> 1.2.0)
-      debugger-ruby_core_source (~> 1.2.0)
+      debugger-ruby_core_source (~> 1.2.3)
     debugger-linecache (1.2.0)
-    debugger-ruby_core_source (1.2.0)
-    json (1.7.7)
-    writeexcel (0.6.16)
+    debugger-ruby_core_source (1.2.4)
+    json (1.8.1)
+    writeexcel (1.0.1)
 
 PLATFORMS
   ruby
@@ -19,4 +19,4 @@ DEPENDENCIES
   builder
   debugger
   json
-  writeexcel
+  writeexcel (~> 1.0.1)
