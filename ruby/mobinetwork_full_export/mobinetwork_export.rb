@@ -107,6 +107,7 @@ end
 
 def write_line(file, line_nb, list)
   cleaned_list = list.map do |item|
+    next if item == nil
     if item.is_a? Numeric
       item
     else
@@ -130,7 +131,7 @@ def main
   end
   file_name = File.join(EXHIBITORS_CONNECTIONS_FOLDER, "export.csv")
   line_number = 1
-  file = File.open(file_name, 'wb') do |f|
+  file = File.open(file_name, 'w:UTF-8') do |f|
     ex_count = 0
     get_exhibitors.each do |exhibitor_id, payload|
 
